@@ -171,17 +171,14 @@ label{font-size:11px;color:#64748b;display:block;margin-bottom:3px}
 </div>
 
 <!-- TAB CONFIG -->
-<div id="tab-config" style="display:none" class="section" style="padding-top:16px">
+<div id="tab-config" style="display:none" class="section">
   <div style="padding-top:16px">
     <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:10px">Configuração da IA</div>
     <div class="cfg-box">
       <label>Chave da API Gemini</label>
       <input type="password" id="cfg-key" placeholder="Cole sua chave aqui..." style="margin-bottom:8px;font-family:monospace;font-size:11px">
       <button class="btn-primary" onclick="salvarChave()">💾 Salvar Chave</button>
-      <div style="font-size:11px;color:#64748b;margin-top:10px;line-height:1.6">
-        Obtenha sua chave gratuita em:<br>
-        <span style="color:#4f8ef7;font-family:monospace">aistudio.google.com/apikey</span>
-      </div>
+      <div style="font-size:11px;color:#64748b;margin-top:10px;line-height:1.6">Obtenha sua chave gratuita em:<br><span style="color:#4f8ef7;font-family:monospace">aistudio.google.com/apikey</span></div>
     </div>
     <div id="cfg-status" style="font-size:12px;color:#22c55e;margin-top:8px;display:none">✅ Chave configurada!</div>
   </div>
@@ -238,7 +235,6 @@ const fmt=v=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
 let gastos=JSON.parse(localStorage.getItem('gnfe3')||'[]');
 let urlAtual='';let dadosIA=null;let stream=null;let scanInterval=null;
 
-// Chave armazenada localmente — não fica no código
 function getKey(){return localStorage.getItem('gemini_key')||'';}
 function salvarChave(){
   const k=document.getElementById('cfg-key').value.trim();
@@ -251,7 +247,7 @@ function salvarChave(){
 
 window.onload=()=>{
   document.getElementById('f-data').value=new Date().toLocaleDateString('pt-BR');
-  if(getKey()) document.getElementById('cfg-status').style.display='block';
+  if(getKey())document.getElementById('cfg-status').style.display='block';
   renderTudo();
 };
 
@@ -259,8 +255,7 @@ function salvar(){localStorage.setItem('gnfe3',JSON.stringify(gastos));}
 
 function trocarTab(tab,el){
   ['adicionar','resumo','lista','config'].forEach(t=>{
-    const el2=document.getElementById('tab-'+t);
-    if(el2)el2.style.display=t===tab?'block':'none';
+    const e=document.getElementById('tab-'+t);if(e)e.style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
@@ -272,7 +267,7 @@ async function processarArquivo(event){
   const file=event.target.files[0];
   if(!file)return;
   const key=getKey();
-  if(!key){toast('Configure a chave da API na aba ⚙️','error');trocarTab('config',document.querySelectorAll('.tab')[3]);return;}
+  if(!key){toast('Configure a chave na aba ⚙️','error');return;}
   const isPdf=file.type==='application/pdf';
   document.getElementById('loading-titulo').textContent=isPdf?'Lendo o PDF...':'Analisando a foto...';
   document.getElementById('modal-loading').classList.add('show');
@@ -304,10 +299,9 @@ Retorne APENAS JSON válido sem markdown:
 {"estabelecimento":"nome","cnpj":"00.000.000/0001-00","data":"DD/MM/AAAA","numero_nf":"000","valor_total":0.00,"categoria_sugerida":"Alimentação","itens":[{"descricao":"item","quantidade":1,"valor_unitario":0.00,"valor_total":0.00}]}
 Se não encontrar um campo use null. Extraia TODOS os itens.`;
 
-  const endpoint=['https://generativelanguage.googleapis.com/v1beta/models/',
-    'gemini-1.5-flash:generateContent?key=',key].join('');
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key;
 
-  const response=await fetch(endpoint,{
+  const response=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
