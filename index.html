@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Gastos NF-e</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e2e8f0;font-family:system-ui,sans-serif;font-size:14px}
+.header{background:#181c27;border-bottom:1px solid #252b3d;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,#4f8ef7,#7c5cfc);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#4f8ef7,#7c5cfc);color:#fff;width:100%;padding:12px;font-size:14px}
+.btn-ghost{background:#1e2334;border:1px solid #252b3d;color:#e2e8f0}
+.btn-danger{background:#1e2334;border:1px solid #ef444433;color:#ef4444}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}
+.kpi{background:#181c27;border:1px solid #252b3d;border-radius:12px;padding:14px}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:.8px;color:#64748b;text-transform:uppercase;margin-bottom:6px}
+.kpi-valor{font-family:monospace;font-size:18px;font-weight:600}
+.kpi-sub{font-size:10px;color:#64748b;margin-top:3px}
+.section{padding:0 16px 16px}
+.section-title{font-size:10px;font-weight:600;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:10px}
+.card{background:#181c27;border:1px solid #252b3d;border-radius:12px;padding:14px;margin-bottom:12px}
+.scan-btn{border:2px dashed #252b3d;background:#181c27;border-radius:12px;padding:24px;text-align:center;width:100%;cursor:pointer;margin-bottom:12px}
+.scan-btn:active{border-color:#4f8ef7}
+.scan-icon{font-size:36px;display:block;margin-bottom:8px}
+.scan-title{font-weight:600;font-size:14px;color:#e2e8f0;margin-bottom:4px}
+.scan-sub{font-size:11px;color:#64748b}
+input,select{background:#1e2334;border:1px solid #252b3d;color:#e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;width:100%;font-family:inherit;outline:none;margin-bottom:8px}
+label{font-size:11px;color:#64748b;display:block;margin-bottom:3px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.divider{display:flex;align-items:center;gap:8px;color:#64748b;font-size:11px;margin:10px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#252b3d}
+.bar-item{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:11px}
+.bar-label{width:80px;color:#94a3b8;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:6px;background:#1e2334;border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px}
+.bar-val{font-family:monospace;font-size:11px;width:65px;text-align:right;flex-shrink:0}
+.item{padding:12px 16px;border-bottom:1px solid #252b3d}
+.item:last-child{border-bottom:none}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.item-nome{font-weight:500;font-size:13px}
+.item-valor{font-family:monospace;font-weight:600;color:#e2e8f0}
+.item-bot{display:flex;justify-content:space-between;align-items:center}
+.cat-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+.fonte-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+.fonte-qr{background:#4f8ef722;color:#4f8ef7;border:1px solid #4f8ef744}
+.fonte-manual{background:#7c5cfc22;color:#7c5cfc;border:1px solid #7c5cfc44}
+.empty{text-align:center;padding:40px;color:#64748b}
+.empty-icon{font-size:36px;margin-bottom:10px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#181c27;border:1px solid #252b3d;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;box-shadow:0 8px 24px #00000060}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#camera-wrap{display:none;position:relative;border-radius:12px;overflow:hidden;background:#000;margin-bottom:12px}
+#video{width:100%;display:block;max-height:260px;object-fit:cover}
+.cam-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cam-frame{width:180px;height:180px;border:2px solid #4f8ef7;border-radius:12px;box-shadow:0 0 0 9999px #00000055}
+.cam-bar{position:absolute;bottom:0;left:0;right:0;background:#00000088;padding:10px;text-align:center;font-size:11px;color:#fff}
+.cam-close{position:absolute;top:8px;right:8px}
+.modal{display:none;position:fixed;inset:0;background:#000000bb;z-index:500;align-items:flex-end;justify-content:center}
+.modal.show{display:flex}
+.modal-box{background:#181c27;border:1px solid #252b3d;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-weight:700;font-size:15px;margin-bottom:14px;display:flex;justify-content:space-between}
+.tabs{display:flex;border-bottom:1px solid #252b3d;margin-bottom:16px}
+.tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#4f8ef7;border-bottom-color:#4f8ef7}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">📊</div>
+    Gastos NF-e
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:11px;padding:6px 10px">↓ CSV</button>
+    <button class="btn btn-danger" onclick="limpar()" style="font-size:11px;padding:6px 10px">🗑</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="trocarTab('adicionar',this)">➕ Adicionar</div>
+  <div class="tab" onclick="trocarTab('resumo',this)">📊 Resumo</div>
+  <div class="tab" onclick="trocarTab('lista',this)">🧾 Lista</div>
+</div>
+
+<!-- TAB ADICIONAR -->
+<div id="tab-adicionar" class="section">
+
+  <button class="scan-btn" onclick="abrirCamera()">
+    <span class="scan-icon">📷</span>
+    <div class="scan-title">Escanear QR Code da NF-e</div>
+    <div class="scan-sub">Toque para abrir a câmera</div>
+  </button>
+
+  <div id="camera-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <div class="cam-overlay"><div class="cam-frame"></div></div>
+    <div class="cam-bar" id="cam-status">Iniciando câmera...</div>
+    <div class="cam-close">
+      <button class="btn btn-ghost" onclick="fecharCamera()" style="font-size:12px;padding:5px 10px">✕</button>
+    </div>
+  </div>
+
+  <div class="divider">ou cole a URL da NF-e</div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="text" id="url-input" placeholder="https://www.nfce.fazenda..." style="margin:0;font-size:11px;font-family:monospace">
+    <button class="btn btn-ghost" onclick="processarUrl()" style="white-space:nowrap">Ler</button>
+  </div>
+
+  <div class="divider">ou adicione manual</div>
+
+  <label>Estabelecimento *</label>
+  <input type="text" id="f-empresa" placeholder="Nome da loja, posto...">
+
+  <div class="row2">
+    <div><label>Valor (R$) *</label><input type="number" id="f-valor" placeholder="0,00" step="0.01"></div>
+    <div><label>Data *</label><input type="text" id="f-data"></div>
+  </div>
+
+  <div class="row2">
+    <div>
+      <label>Categoria</label>
+      <select id="f-cat">
+        <option>⛽ Combustível</option>
+        <option>🍽️ Alimentação</option>
+        <option>🔧 Materiais</option>
+        <option>🛠️ Serviços</option>
+        <option>📋 Impostos</option>
+        <option>💻 TI / Software</option>
+        <option selected>📦 Outros</option>
+      </select>
+    </div>
+    <div><label>N° NF</label><input type="text" id="f-nf" placeholder="000001"></div>
+  </div>
+
+  <label>Observação</label>
+  <input type="text" id="f-obs" placeholder="Detalhe adicional...">
+
+  <button class="btn btn-primary" onclick="adicionarManual()">+ Adicionar Gasto</button>
+</div>
+
+<!-- TAB RESUMO -->
+<div id="tab-resumo" style="display:none">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-valor" style="color:#ef4444" id="kpi-total">R$ 0,00</div><div class="kpi-sub" id="kpi-qtd">0 lançamentos</div></div>
+    <div class="kpi"><div class="kpi-label">Via QR</div><div class="kpi-valor" style="color:#22c55e" id="kpi-qr">0</div><div class="kpi-sub">notas escaneadas</div></div>
+    <div class="kpi"><div class="kpi-label">Maior Gasto</div><div class="kpi-valor" style="color:#4f8ef7" id="kpi-maior">R$ 0,00</div><div class="kpi-sub" id="kpi-maior-nome">—</div></div>
+    <div class="kpi"><div class="kpi-label">Ticket Médio</div><div class="kpi-valor" id="kpi-medio">R$ 0,00</div><div class="kpi-sub">por lançamento</div></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Por categoria</div>
+    <div class="card" id="grafico"></div>
+  </div>
+</div>
+
+<!-- TAB LISTA -->
+<div id="tab-lista" style="display:none">
+  <div style="padding:12px 16px;border-bottom:1px solid #252b3d">
+    <input type="text" id="busca" placeholder="🔍 Buscar..." style="margin:0" oninput="renderLista()">
+  </div>
+  <div id="lista-container"></div>
+</div>
+
+<!-- MODAL QR -->
+<div class="modal" id="modal-qr">
+  <div class="modal-box">
+    <div class="modal-title">
+      🧾 Dados da NF-e
+      <button class="btn btn-ghost" onclick="fecharModal()" style="padding:4px 10px;font-size:12px">✕</button>
+    </div>
+    <div id="modal-info" style="background:#0f1117;border-radius:8px;padding:10px;font-size:11px;font-family:monospace;color:#64748b;margin-bottom:14px;word-break:break-all;line-height:1.6"></div>
+    <label>Estabelecimento *</label>
+    <input type="text" id="m-empresa" placeholder="Nome da loja...">
+    <div class="row2">
+      <div><label>Valor (R$) *</label><input type="number" id="m-valor" placeholder="0,00" step="0.01"></div>
+      <div><label>Data</label><input type="text" id="m-data"></div>
+    </div>
+    <div class="row2">
+      <div>
+        <label>Categoria</label>
+        <select id="m-cat">
+          <option>⛽ Combustível</option>
+          <option>🍽️ Alimentação</option>
+          <option>🔧 Materiais</option>
+          <option>🛠️ Serviços</option>
+          <option>📋 Impostos</option>
+          <option>💻 TI / Software</option>
+          <option selected>📦 Outros</option>
+        </select>
+      </div>
+      <div><label>N° NF</label><input type="text" id="m-nf"></div>
+    </div>
+    <button class="btn btn-primary" onclick="confirmarQr()" style="margin-top:6px">✅ Confirmar e Adicionar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const CATS={
+  '⛽ Combustível':'#f59e0b','🍽️ Alimentação':'#22c55e','🔧 Materiais':'#3b82f6',
+  '🛠️ Serviços':'#8b5cf6','📋 Impostos':'#ef4444','💻 TI / Software':'#06b6d4','📦 Outros':'#64748b'
+};
+const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+let gastos=JSON.parse(localStorage.getItem('gnfe')||'[]');
+let urlAtual='';
+let stream=null,scanInterval=null;
+
+window.onload=()=>{
+  document.getElementById('f-data').value=new Date().toLocaleDateString('pt-BR');
+  renderTudo();
+};
+
+function salvar(){localStorage.setItem('gnfe',JSON.stringify(gastos));}
+
+function trocarTab(tab,el){
+  ['adicionar','resumo','lista'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(tab==='resumo')renderResumo();
+  if(tab==='lista')renderLista();
+}
+
+// CÂMERA
+async function abrirCamera(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video=document.getElementById('video');
+    video.srcObject=stream;
+    video.play();
+    document.getElementById('camera-wrap').style.display='block';
+    document.querySelector('.scan-btn').style.display='none';
+    document.getElementById('cam-status').textContent='Aponte para o QR Code da nota';
+    scanInterval=setInterval(scanFrame,300);
+  }catch(e){
+    toast('❌ Câmera negada: '+e.message,'error');
+  }
+}
+
+function fecharCamera(){
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  clearInterval(scanInterval);
+  document.getElementById('camera-wrap').style.display='none';
+  document.querySelector('.scan-btn').style.display='block';
+}
+
+function scanFrame(){
+  const video=document.getElementById('video');
+  const canvas=document.getElementById('canvas');
+  if(video.readyState<2)return;
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0);
+  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const result=jsQR(img.data,img.width,img.height);
+  if(result?.data){
+    clearInterval(scanInterval);
+    fecharCamera();
+    processarQrData(result.data);
+    toast('🔍 QR Code lido!','success');
+  }
+}
+
+function processarUrl(){
+  const url=document.getElementById('url-input').value.trim();
+  if(!url){toast('Cole a URL primeiro','error');return;}
+  processarQrData(url);
+}
+
+function processarQrData(data){
+  urlAtual=data;
+  const chave=data.match(/\d{44}/)?.[0]||null;
+  let cnpj='';
+  if(chave){const r=chave.substring(6,20);cnpj=r.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5');}
+  const nf=chave?String(parseInt(chave.substring(25,34))):'';
+  document.getElementById('modal-info').innerHTML=
+    (chave?`🔑 ${chave.match(/.{4}/g).join(' ')}<br>`:'')+(cnpj?`🏢 CNPJ: ${cnpj}`:'');
+  document.getElementById('m-data').value=new Date().toLocaleDateString('pt-BR');
+  document.getElementById('m-nf').value=nf;
+  document.getElementById('modal-qr').classList.add('show');
+}
+
+function fecharModal(){document.getElementById('modal-qr').classList.remove('show');}
+
+function confirmarQr(){
+  const empresa=document.getElementById('m-empresa').value.trim();
+  const valor=parseFloat(document.getElementById('m-valor').value);
+  const data=document.getElementById('m-data').value.trim();
+  const categoria=document.getElementById('m-cat').value;
+  const nf=document.getElementById('m-nf').value.trim();
+  if(!empresa||!valor||!data){toast('Preencha os campos obrigatórios','error');return;}
+  adicionar({empresa,valor,data,categoria,nf,obs:'',fonte:'qr',url:urlAtual});
+  fecharModal();
+  document.getElementById('m-empresa').value='';
+  document.getElementById('m-valor').value='';
+  document.getElementById('url-input').value='';
+}
+
+function adicionarManual(){
+  const empresa=document.getElementById('f-empresa').value.trim();
+  const valor=parseFloat(document.getElementById('f-valor').value);
+  const data=document.getElementById('f-data').value.trim();
+  const categoria=document.getElementById('f-cat').value;
+  const nf=document.getElementById('f-nf').value.trim();
+  const obs=document.getElementById('f-obs').value.trim();
+  if(!empresa||!valor||!data){toast('Preencha os campos obrigatórios','error');return;}
+  adicionar({empresa,valor,data,categoria,nf,obs,fonte:'manual',url:''});
+  document.getElementById('f-empresa').value='';
+  document.getElementById('f-valor').value='';
+  document.getElementById('f-nf').value='';
+  document.getElementById('f-obs').value='';
+}
+
+function adicionar(g){
+  g.id=Date.now();
+  gastos.unshift(g);
+  salvar();
+  renderTudo();
+  toast('✅ R$ '+fmt(g.valor)+' adicionado','success');
+}
+
+function excluir(id){
+  if(!confirm('Remover este lançamento?'))return;
+  gastos=gastos.filter(g=>g.id!==id);
+  salvar();
+  renderTudo();
+  renderLista();
+  toast('🗑️ Removido','info');
+}
+
+function renderTudo(){
+  const total=gastos.reduce((s,g)=>s+g.valor,0);
+  const maior=gastos.reduce((m,g)=>g.valor>(m?.valor||0)?g:m,null);
+  const medio=gastos.length?total/gastos.length:0;
+  const qr=gastos.filter(g=>g.fonte==='qr').length;
+  document.getElementById('kpi-total').textContent='R$ '+fmt(total);
+  document.getElementById('kpi-qtd').textContent=gastos.length+' lançamento'+(gastos.length!==1?'s':'');
+  document.getElementById('kpi-maior').textContent=maior?'R$ '+fmt(maior.valor):'R$ 0,00';
+  document.getElementById('kpi-maior-nome').textContent=maior?.empresa||'—';
+  document.getElementById('kpi-medio').textContent='R$ '+fmt(medio);
+  document.getElementById('kpi-qr').textContent=qr;
+}
+
+function renderResumo(){
+  renderTudo();
+  const totCats={};
+  gastos.forEach(g=>{totCats[g.categoria]=(totCats[g.categoria]||0)+g.valor;});
+  const total=gastos.reduce((s,g)=>s+g.valor,0);
+  const sorted=Object.entries(totCats).sort((a,b)=>b[1]-a[1]);
+  const maxV=sorted[0]?.[1]||1;
+  const g=document.getElementById('grafico');
+  if(!sorted.length){g.innerHTML='<div class="empty"><div class="empty-icon">📊</div>Sem dados</div>';return;}
+  g.innerHTML=sorted.map(([cat,val])=>{
+    const cor=CATS[cat]||'#64748b';
+    const pct=(val/maxV*100).toFixed(0);
+    const fatia=total?(val/total*100).toFixed(1):0;
+    return`<div class="bar-item">
+      <div class="bar-label">${cat}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cor}"></div></div>
+      <div class="bar-val">R$ ${fmt(val)}</div>
+      <div style="font-size:10px;color:#64748b;width:30px;text-align:right">${fatia}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLista(){
+  const busca=(document.getElementById('busca')?.value||'').toLowerCase();
+  const lista=gastos.filter(g=>!busca||g.empresa.toLowerCase().includes(busca));
+  const c=document.getElementById('lista-container');
+  if(!lista.length){
+    c.innerHTML=`<div class="empty"><div class="empty-icon">${gastos.length?'🔍':'🧾'}</div><div>${gastos.length?'Sem resultados':'Nenhum lançamento ainda'}</div></div>`;
+    return;
+  }
+  c.innerHTML=lista.map(g=>{
+    const cor=CATS[g.categoria]||'#64748b';
+    const badge=g.fonte==='qr'
+      ?`<span class="fonte-badge fonte-qr">QR</span>`
+      :`<span class="fonte-badge fonte-manual">MANUAL</span>`;
+    return`<div class="item">
+      <div class="item-top">
+        <div class="item-nome">${g.empresa}</div>
+        <div class="item-valor">R$ ${fmt(g.valor)}</div>
+      </div>
+      <div class="item-bot">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="cat-tag" style="background:${cor}22;color:${cor};border:1px solid ${cor}44">${g.categoria}</span>
+          ${badge}
+          <span style="font-size:10px;color:#64748b">${g.data}</span>
+        </div>
+        <button onclick="excluir(${g.id})" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px">🗑</button>
+      </div>
+      ${g.obs?`<div style="font-size:11px;color:#64748b;margin-top:4px">${g.obs}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function exportCSV(){
+  if(!gastos.length){toast('Sem dados','error');return;}
+  const cols=['Data','Estabelecimento','Categoria','Valor','N° NF','Obs','Fonte'];
+  const rows=gastos.map(g=>[g.data,g.empresa,g.categoria,g.valor.toFixed(2),g.nf,g.obs,g.fonte]);
+  const csv=[cols,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='gastos_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast('✅ CSV exportado','success');
+}
+
+function limpar(){
+  if(!confirm('Apagar todos os dados?'))return;
+  gastos=[];salvar();renderTudo();renderLista();
+  toast('🗑️ Dados removidos','info');
+}
+
+function toast(msg,tipo){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderColor=tipo==='success'?'#22c55e44':tipo==='error'?'#ef444444':'#252b3d';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
